@@ -94,6 +94,7 @@ class LeggedRobot(BaseTask):
 
         clip_actions = self.cfg.normalization.clip_actions
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
+        # print("#######actions : ", self.actions[0])
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):
@@ -108,7 +109,7 @@ class LeggedRobot(BaseTask):
         # return clipped obs, clipped states (None), rewards, dones and infos
         clip_obs = self.cfg.normalization.clip_observations
         self.obs_buf = torch.clip(self.obs_buf, -clip_obs, clip_obs)
-        # print("#######obs_buf=====",self.obs_buf)
+        # print("#######obs_buf=====",self.obs_buf[0])
         # self.obs_hist_buf = self.obs_hist_buf[:,45:]
         # self.obs_hist_buf = torch.cat((self.obs_hist_buf,self.obs_buf),dim = -1)
 
@@ -374,8 +375,8 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         # set small commands to zero
-        self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
-        # self.commands[env_ids, :]=torch.cuda.FloatTensor([0.7,0,0,0],device=self.device)
+        # self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
+        self.commands[env_ids, :]=torch.cuda.FloatTensor([0.6,0,0,0],device=self.device)
         
 
     def _compute_torques(self, actions):

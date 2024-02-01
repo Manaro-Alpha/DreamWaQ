@@ -189,6 +189,35 @@ def export_policy_as_jit(actor_critic, path):
         traced_script_module = torch.jit.script(model)
         traced_script_module.save(path)
 
+def export_policy_as_jit_actor(actor_critic, path):
+        os.makedirs(path, exist_ok=True)
+        path = os.path.join(path, 'actor_dwaq.pt')
+        model = copy.deepcopy(actor_critic.actor).to('cpu')
+        print("policy model",model)        
+        traced_script_module = torch.jit.script(model)
+        traced_script_module.save(path)
+
+def export_policy_as_jit_encoder(actor_critic, path):
+        os.makedirs(path, exist_ok=True)
+        path1 = os.path.join(path, 'encoder_dwaq.pt')
+        model = copy.deepcopy(actor_critic.encoder).to('cpu')
+        print("encoder model",model)
+        traced_script_module = torch.jit.script(model)
+        traced_script_module.save(path1)
+
+        path2 = os.path.join(path, 'encoder_mu_dwaq.pt')
+        model = copy.deepcopy(actor_critic.encode_mean).to('cpu')
+        print("mu model",model)
+        traced_script_module = torch.jit.script(model)
+        traced_script_module.save(path2)
+
+        path3 = os.path.join(path, 'encoder_var_dwaq.pt')
+        model = copy.deepcopy(actor_critic.encode_logvar).to('cpu')
+        print("encoder var model",model)
+        traced_script_module = torch.jit.script(model)
+        traced_script_module.save(path3)
+
+
 
 class PolicyExporterLSTM(torch.nn.Module):
     def __init__(self, actor_critic):

@@ -34,13 +34,22 @@ import os
 import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import  get_args, export_policy_as_jit, task_registry, Logger
+from legged_gym.utils.helpers import export_policy_as_jit_actor,export_policy_as_jit_encoder,class_to_dict
 
 import numpy as np
 import torch
+import pickle
 
 
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
+    class_to_dict(env_cfg)
+    class_to_dict(train_cfg)
+    
+    with open('env_cfg.pkl', 'wb') as f:
+        pickle.dump(class_to_dict(env_cfg), f)
+    with open('train_cfg.pkl', 'wb') as f:
+        pickle.dump(train_cfg, f)
     # override some parameters for testing
     env_cfg.env.num_envs = min(env_cfg.env.num_envs, 50)
     env_cfg.terrain.num_rows = 5
@@ -61,7 +70,8 @@ def play(args):
     # export policy as a jit module (used to run it from C++)
     if EXPORT_POLICY:
         path = os.path.join(LEGGED_GYM_ROOT_DIR, 'logs', train_cfg.runner.experiment_name, 'exported', 'policies')
-        export_policy_as_jit(ppo_runner.alg.actor_critic, path)
+        export_policy_as_jit_actor(ppo_runner.alg.actor_critic, path)
+        export_policy_as_jit_encoder(ppo_runner.alg.actor_critic,path)
         print('Exported policy as jit script to: ', path)
 
     logger = Logger(env.dt)

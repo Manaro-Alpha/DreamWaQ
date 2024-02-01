@@ -79,6 +79,7 @@ class ActorCritic_DWAQ(nn.Module):
         var = torch.exp(logvar*0.5)
         code_temp = torch.randn_like(var)
         code = mean + var*code_temp
+        # print("latent : ",code[0])
         decode = self.decoder(code)
         return code,decode,mean,logvar
 
