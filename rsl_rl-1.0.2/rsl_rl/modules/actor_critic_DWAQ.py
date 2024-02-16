@@ -42,7 +42,7 @@ class ActorCritic_DWAQ(nn.Module):
         self.encode_logvar = nn.Linear(64,cenet_out_dim)
 
         self.decoder = nn.Sequential(
-            nn.Linear(cenet_out_dim,64),
+            nn.Linear(cenet_out_dim-3,64),
             self.activation,
             nn.Linear(64,128),
             self.activation,
@@ -80,7 +80,7 @@ class ActorCritic_DWAQ(nn.Module):
         code_temp = torch.randn_like(var)
         code = mean + var*code_temp
         # print("latent : ",code[0])
-        decode = self.decoder(code)
+        decode = self.decoder(code[:,3:])
         return code,decode,mean,logvar
 
     @property

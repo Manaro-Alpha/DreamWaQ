@@ -189,6 +189,7 @@ class LeggedRobot(BaseTask):
         self._reset_root_states(env_ids)
 
         self._resample_commands(env_ids)
+        self._randomize_rigid_body_props(env_ids,self.cfg)
 
         # reset buffers
         self.slast_actions[env_ids] = 0.
@@ -290,17 +291,17 @@ class LeggedRobot(BaseTask):
         Returns:
             [List[gymapi.RigidShapeProperties]]: Modified rigid shape properties
         """
-        if self.cfg.domain_rand.randomize_friction:
-            if env_id==0:
-                # prepare friction randomization
-                friction_range = self.cfg.domain_rand.friction_range
-                num_buckets = 64
-                bucket_ids = torch.randint(0, num_buckets, (self.num_envs, 1))
-                friction_buckets = torch_rand_float(friction_range[0], friction_range[1], (num_buckets,1), device='cpu')
-                self.friction_coeffs = friction_buckets[bucket_ids]
+        # if self.cfg.domain_rand.randomize_friction:
+        #     if env_id==0:
+        #         # prepare friction randomization
+        #         friction_range = self.cfg.domain_rand.friction_range
+        #         num_buckets = 64
+        #         bucket_ids = torch.randint(0, num_buckets, (self.num_envs, 1))
+        #         friction_buckets = torch_rand_float(friction_range[0], friction_range[1], (num_buckets,1), device='cpu')
+        #         self.friction_coeffs = friction_buckets[bucket_ids]
 
-            for s in range(len(props)):
-                props[s].friction = self.friction_coeffs[env_id]
+        for s in range(len(props)):
+            props[s].friction = self.friction_coeffs[env_id,0]
         return props
 
     def _process_dof_props(self, props, env_id):
@@ -331,6 +332,56 @@ class LeggedRobot(BaseTask):
                 self.dof_pos_limits[i, 1] = m + 0.5 * r * self.cfg.rewards.soft_dof_pos_limit
         return props
 
+    def _randomize_rigid_body_props(self, env_ids, cfg):
+       
+        if cfg.domain_rand.randomize_base_mass:
+            min_payload, max_payload = cfg.domain_rand.added_mass_range
+            # self.payloads[env_ids] = -1.0
+            self.payloads[env_ids] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                requires_grad=False) * (max_payload - min_payload) + min_payload
+        if cfg.domain_rand.randomize_com_displacement:
+            min_com_displacement, max_com_displacement = cfg.domain_rand.com_displacement_range
+            self.com_displacements[env_ids, :] = torch.rand(len(env_ids), 3, dtype=torch.float, device=self.device,
+                                                            requires_grad=False) * (
+                                                            max_com_displacement - min_com_displacement) + min_com_displacement
+
+        if cfg.domain_rand.randomize_friction:
+            min_friction, max_friction = cfg.domain_rand.friction_range
+            self.friction_coeffs[env_ids, :] = torch.rand(len(env_ids), 1, dtype=torch.float, device=self.device,
+                                                            requires_grad=False) * (
+                                                        max_friction - min_friction) + min_friction
+
+
+    def _randomize_dof_props(self, env_ids, cfg):
+        
+        if cfg.domain_rand.randomize_motor_strength:
+            min_strength, max_strength = cfg.domain_rand.motor_strength_range
+            self.motor_strengths[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                        requires_grad=False).unsqueeze(1) * (
+                                                    max_strength - min_strength) + min_strength
+        if cfg.domain_rand.randomize_Kp_factor:
+            min_Kp_factor, max_Kp_factor = cfg.domain_rand.Kp_factor_range
+            self.Kp_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                        requires_grad=False).unsqueeze(1) * (
+                                                    max_Kp_factor - min_Kp_factor) + min_Kp_factor
+        if cfg.domain_rand.randomize_Kd_factor:
+            min_Kd_factor, max_Kd_factor = cfg.domain_rand.Kd_factor_range
+            self.Kd_factors[env_ids, :] = torch.rand(len(env_ids), dtype=torch.float, device=self.device,
+                                                        requires_grad=False).unsqueeze(1) * (
+                                                    max_Kd_factor - min_Kd_factor) + min_Kd_factor
+
+
+
+    # def refresh_actor_rigid_shape_props(self, env_ids, cfg):
+    #     for env_id in env_ids:
+    #         rigid_shape_props = self.gym.get_actor_rigid_shape_properties(self.envs[env_id], 0)
+
+    #         for i in range(self.num_dof):
+    #             rigid_shape_props[i].friction = self.friction_coeffs[env_id, 0]
+    #             #rigid_shape_props[i].restitution = self.restitutions[env_id, 0]
+
+    #         self.gym.set_actor_rigid_shape_properties(self.envs[env_id], 0, rigid_shape_props)
+    
     def _process_rigid_body_props(self, props, env_id):
         # if env_id==0:
         #     sum = 0
@@ -339,9 +390,15 @@ class LeggedRobot(BaseTask):
         #         print(f"Mass of body {i}: {p.mass} (before randomization)")
         #     print(f"Total mass {sum} (before randomization)")
         # randomize base mass
-        if self.cfg.domain_rand.randomize_base_mass:
-            rng = self.cfg.domain_rand.added_mass_range
-            props[0].mass += np.random.uniform(rng[0], rng[1])
+        # if self.cfg.domain_rand.randomize_base_mass:
+        #     rng = self.cfg.domain_rand.added_mass_range
+        #     props[0].mass += np.random.uniform(rng[0], rng[1])
+        # return props
+
+        self.default_body_mass = props[0].mass
+        props[0].mass = self.default_body_mass + self.payloads[env_id]
+        props[0].com = gymapi.Vec3(self.com_displacements[env_id, 0], self.com_displacements[env_id, 1],
+                                   self.com_displacements[env_id, 2])
         return props
     
     def _post_physics_step_callback(self):
@@ -360,6 +417,14 @@ class LeggedRobot(BaseTask):
             self.measured_heights = self._get_heights()
         if self.cfg.domain_rand.push_robots and  (self.common_step_counter % self.cfg.domain_rand.push_interval == 0):
             self._push_robots()
+        
+        # randomize dof properties
+        env_ids = (self.episode_length_buf % int(self.cfg.domain_rand.rand_interval_s) == 0).nonzero(
+            as_tuple=False).flatten()
+        self._randomize_dof_props(env_ids,self.cfg)
+
+        self._randomize_rigid_body_props(env_ids,self.cfg)
+        #self.refresh_actor_rigid_shape_props(env_ids,self.cfg)
 
     def _resample_commands(self, env_ids):
         """ Randommly select commands of some environments
@@ -375,8 +440,9 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         # set small commands to zero
-        # self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
-        self.commands[env_ids, :]=torch.cuda.FloatTensor([0.6,0,0,0],device=self.device)
+        # self.commands[env_ids, :]=torch.cuda.FloatTensor([0.5,0,0,0],device=self.device)
+        self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
+        
         
 
     def _compute_torques(self, actions):
@@ -504,8 +570,8 @@ class LeggedRobot(BaseTask):
         noise_vec[12:24] = noise_scales.dof_pos * noise_level * self.obs_scales.dof_pos
         noise_vec[24:36] = noise_scales.dof_vel * noise_level * self.obs_scales.dof_vel
         noise_vec[36:48] = 0. # previous actions
-        if self.cfg.terrain.measure_heights:
-            noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
+        # if self.cfg.terrain.measure_heights:
+        #     noise_vec[48:235] = noise_scales.height_measurements* noise_level * self.obs_scales.height_measurements
         return noise_vec
 
     #----------------------------------------
@@ -517,10 +583,12 @@ class LeggedRobot(BaseTask):
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)
         dof_force = self.gym.acquire_dof_force_tensor(self.sim)
+        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_net_contact_force_tensor(self.sim)
-        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
+        self.gym.refresh_rigid_body_state_tensor(self.sim)
+        
 
         # create some wrapper tensors for different slices
         self.root_states = gymtorch.wrap_tensor(actor_root_state)
@@ -585,6 +653,18 @@ class LeggedRobot(BaseTask):
                 if self.cfg.control.control_type in ["P", "V"]:
                     print(f"PD gain of joint {name} were not defined, setting them to zero")
         self.default_dof_pos = self.default_dof_pos.unsqueeze(0)
+
+    def _init_custom_buffers__(self):
+        # domain randomization properties
+        self.friction_coeffs = self.default_friction * torch.ones(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
+        
+        self.payloads = torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
+        self.com_displacements = torch.zeros(self.num_envs, 3, dtype=torch.float, device=self.device, requires_grad=False)
+        self.motor_strengths = torch.ones(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+        
+        self.Kp_factors = torch.ones(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+        self.Kd_factors = torch.ones(self.num_envs, self.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
+
 
     def _prepare_reward_function(self):
         """ Prepares a list of reward functions, whcih will be called to compute the total reward.
@@ -707,8 +787,12 @@ class LeggedRobot(BaseTask):
         self.base_init_state = to_torch(base_init_state_list, device=self.device, requires_grad=False)
         start_pose = gymapi.Transform()
         start_pose.p = gymapi.Vec3(*self.base_init_state[:3])
+        self.default_friction = rigid_shape_props_asset[1].friction
 
         self._get_env_origins()
+        self._init_custom_buffers__()
+        self._randomize_rigid_body_props( torch.arange(self.num_envs, device=self.device), self.cfg)
+
         env_lower = gymapi.Vec3(0., 0., 0.)
         env_upper = gymapi.Vec3(0., 0., 0.)
         self.actor_handles = []
@@ -780,6 +864,7 @@ class LeggedRobot(BaseTask):
         self.max_episode_length_s = self.cfg.env.episode_length_s
         self.max_episode_length = np.ceil(self.max_episode_length_s / self.dt)
 
+        self.cfg.domain_rand.rand_interval = np.ceil(self.cfg.domain_rand.rand_interval_s / self.dt)
         self.cfg.domain_rand.push_interval = np.ceil(self.cfg.domain_rand.push_interval_s / self.dt)
 
     def _draw_debug_vis(self):
@@ -911,6 +996,7 @@ class LeggedRobot(BaseTask):
         # Penalize dof positions too close to the limit
         out_of_limits = -(self.dof_pos - self.dof_pos_limits[:, 0]).clip(max=0.) # lower limit
         out_of_limits += (self.dof_pos - self.dof_pos_limits[:, 1]).clip(min=0.)
+        # print(out_of_limits)
         return torch.sum(out_of_limits, dim=1)
 
     def _reward_dof_vel_limits(self):
@@ -972,7 +1058,7 @@ class LeggedRobot(BaseTask):
     
     def _reward_feet_clearance(self):
         feet_height = (self.foot_positions[:, :, 2]).view(self.num_envs, -1)
-        feet_height_des = torch.max(self._get_heights())
+        feet_height_des = torch.max(torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements)
         # feet_height_des.view(self.num_envs)
         feet_velocities = (self.foot_velocities[:,:,2]).view(self.num_envs,-1)
         feet_clearance = feet_height_des - feet_height

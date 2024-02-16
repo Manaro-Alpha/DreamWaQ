@@ -77,7 +77,7 @@ def play(args):
     logger = Logger(env.dt)
     robot_index = 0 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
-    stop_state_log = 100 # number of steps before plotting states
+    stop_state_log = 1000 # number of steps before plotting states
     stop_rew_log = env.max_episode_length + 1 # number of steps before print average episode rewards
     camera_position = np.array(env_cfg.viewer.pos, dtype=np.float64)
     camera_vel = np.array([1., 1., 0.])
@@ -110,7 +110,20 @@ def play(args):
                     'base_vel_y': env.base_lin_vel[robot_index, 1].item(),
                     'base_vel_z': env.base_lin_vel[robot_index, 2].item(),
                     'base_vel_yaw': env.base_ang_vel[robot_index, 2].item(),
-                    'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy()
+                    'contact_forces_z': env.contact_forces[robot_index, env.feet_indices, 2].cpu().numpy(),
+                    'dof_pos_0': env.dof_pos[robot_index, 0].item(),
+                    'dof_pos_1': env.dof_pos[robot_index, 1].item(),
+                    'dof_pos_2': env.dof_pos[robot_index, 2].item(),
+                    'dof_pos_3': env.dof_pos[robot_index, 3].item(),
+                    'dof_pos_4': env.dof_pos[robot_index, 4].item(),
+                    'dof_pos_5': env.dof_pos[robot_index, 5].item(),
+                    'dof_pos_6': env.dof_pos[robot_index, 6].item(),
+                    'dof_pos_7': env.dof_pos[robot_index, 7].item(),
+                    'dof_pos_8': env.dof_pos[robot_index, 8].item(),
+                    'dof_pos_9': env.dof_pos[robot_index, 9].item(),
+                    'dof_pos_10': env.dof_pos[robot_index, 10].item(),
+                    'dof_pos_11': env.dof_pos[robot_index, 11].item(),
+                    
                 }
             )
         elif i==stop_state_log:

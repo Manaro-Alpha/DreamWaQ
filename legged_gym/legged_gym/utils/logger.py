@@ -63,7 +63,7 @@ class Logger:
         self.plot_process.start()
 
     def _plot(self):
-        nb_rows = 3
+        nb_rows = 7
         nb_cols = 3
         fig, axs = plt.subplots(nb_rows, nb_cols)
         for key, value in self.state_log.items():
@@ -122,6 +122,55 @@ class Logger:
         a = axs[2, 2]
         if log["dof_torque"]!=[]: a.plot(time, log["dof_torque"], label='measured')
         a.set(xlabel='time [s]', ylabel='Joint Torque [Nm]', title='Torque')
+        a.legend()
+        # plot joint angles
+        a = axs[3, 0]
+        if log["dof_pos_0"]: a.plot(time, log["dof_pos_0"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 0 Position')
+        a.legend()
+        a = axs[3, 1]
+        if log["dof_pos_1"]: a.plot(time, log["dof_pos_1"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 1 Position')
+        a.legend()
+        a = axs[3, 2]
+        if log["dof_pos_2"]: a.plot(time, log["dof_pos_2"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 2 Position')
+        a.legend()
+        a = axs[4, 0]
+        if log["dof_pos_3"]: a.plot(time, log["dof_pos_3"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 3 Position')
+        a.legend()
+        a = axs[4, 1]
+        if log["dof_pos_4"]: a.plot(time, log["dof_pos_4"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 4 Position')
+        a.legend()
+        a = axs[4, 2]
+        if log["dof_pos_5"]: a.plot(time, log["dof_pos_5"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 5 Position')
+        a.legend()
+        a = axs[5, 0]
+        if log["dof_pos_6"]: a.plot(time, log["dof_pos_6"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 6 Position')
+        a.legend()
+        a = axs[5, 1]
+        if log["dof_pos_7"]: a.plot(time, log["dof_pos_7"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 7 Position')
+        a.legend()
+        a = axs[5, 2]
+        if log["dof_pos_8"]: a.plot(time, log["dof_pos_8"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 8 Position')
+        a.legend()
+        a = axs[6, 0]
+        if log["dof_pos_9"]: a.plot(time, log["dof_pos_9"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 9 Position')
+        a.legend()
+        a = axs[6, 1]
+        if log["dof_pos_10"]: a.plot(time, log["dof_pos_10"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 10 Position')
+        a.legend()
+        a = axs[6, 2]
+        if log["dof_pos_11"]: a.plot(time, log["dof_pos_11"], label='measured')
+        a.set(xlabel='time [s]', ylabel='Position [rad]', title='joint 11 Position')
         a.legend()
         plt.show()
 

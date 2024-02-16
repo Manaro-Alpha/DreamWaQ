@@ -120,11 +120,12 @@ class LeggedRobotCfg(BaseConfig):
         thickness = 0.01
 
     class domain_rand:
+        rand_interval_s = 4
         randomize_friction = True
         friction_range = [0.2, 1.25]
         randomize_base_mass = True
         added_mass_range = [-1., 2.]
-        push_robots = True
+        push_robots = False
         push_interval_s = 15
         max_push_vel_xy = 1.
         randomize_com_displacement = True
@@ -149,7 +150,7 @@ class LeggedRobotCfg(BaseConfig):
             dof_acc = -2.5e-7
             base_height = -1.0 
             #feet_air_time =  1.0
-            collision = -1.
+            # collision = -1.
             # stumble = -0.01 
             action_rate = -0.01
             #stand_still = -0.
@@ -158,7 +159,7 @@ class LeggedRobotCfg(BaseConfig):
             smoothness=-0.01
             feet_clearance=-0.01
             power_distribution=-10e-6
-            feet_clearance = -0.01
+            # feet_clearance = -0.01
 
             
 
@@ -251,7 +252,7 @@ class LeggedRobotCfgPPO(BaseConfig):
     class runner:
         policy_class_name = 'ActorCritic_DWAQ'
         algorithm_class_name = 'PPO'
-        num_steps_per_env = 40 # per iteration
+        num_steps_per_env = 24 # per iteration
         max_iterations = 1500 # number of policy updates
 
         # logging
