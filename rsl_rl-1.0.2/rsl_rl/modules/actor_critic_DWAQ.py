@@ -38,11 +38,13 @@ class ActorCritic_DWAQ(nn.Module):
             nn.Linear(128,64),
             self.activation,
         )
-        self.encode_mean = nn.Linear(64,cenet_out_dim)
-        self.encode_logvar = nn.Linear(64,cenet_out_dim)
+        self.encode_mean_latent = nn.Linear(64,cenet_out_dim-3)
+        self.encode_logvar_latent = nn.Linear(64,cenet_out_dim-3)
+        self.encode_mean_vel = nn.Linear(64,3)
+        self.encode_logvar_vel = nn.Linear(64,3)
 
         self.decoder = nn.Sequential(
-            nn.Linear(cenet_out_dim-3,64),
+            nn.Linear(cenet_out_dim,64),
             self.activation,
             nn.Linear(64,128),
             self.activation,
@@ -72,16 +74,27 @@ class ActorCritic_DWAQ(nn.Module):
     def forward(self):
         raise NotImplementedError
     
-    def cenet_forward(self,obs_history):
-        distribution = self.encoder(obs_history)
-        mean = self.encode_mean(distribution)
-        logvar = self.encode_logvar(distribution)
+    def reparameterise(self,mean,logvar):
         var = torch.exp(logvar*0.5)
         code_temp = torch.randn_like(var)
         code = mean + var*code_temp
+        return code
+    
+    def cenet_forward(self,obs_history):
+        distribution = self.encoder(obs_history)
+        mean_latent = self.encode_mean_latent(distribution)
+        logvar_latent = self.encode_logvar_latent(distribution)
+        # var = torch.exp(logvar_latent*0.5)
+        # code_temp = torch.randn_like(var)
+        # code = mean_latent + var*code_temp
         # print("latent : ",code[0])
-        decode = self.decoder(code[:,3:])
-        return code,decode,mean,logvar
+        mean_vel = self.encode_mean_vel(distribution)
+        logvar_vel = self.encode_mean_vel(distribution)
+        code_latent = self.reparameterise(mean_latent,logvar_latent)
+        code_vel = self.reparameterise(mean_vel,logvar_vel)
+        code = torch.cat((code_vel,code_latent),dim=-1)
+        decode = self.decoder(code)
+        return code,code_vel,decode,mean_vel,logvar_vel,mean_latent,logvar_latent
 
     @property
     def action_mean(self):
@@ -100,7 +113,7 @@ class ActorCritic_DWAQ(nn.Module):
         self.distribution = Normal(mean, mean * 0.0 + self.std)
 
     def act(self, observations, obs_history, **kwargs):
-        code,decode,_,_ = self.cenet_forward(obs_history)
+        code,_,decode,_,_,_,_ = self.cenet_forward(obs_history)
         observations = torch.cat((code,observations),dim=-1)
         self.update_distribution(observations)
         return self.distribution.sample()
@@ -109,7 +122,7 @@ class ActorCritic_DWAQ(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations,obs_history):
-        code,decode,_,_ = self.cenet_forward(obs_history)
+        code,_,decode,_,_,_,_ = self.cenet_forward(obs_history)
         observations = torch.cat((code,observations),dim=-1)
         actions_mean = self.actor(observations)
         return actions_mean

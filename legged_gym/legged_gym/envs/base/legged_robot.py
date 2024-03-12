@@ -155,6 +155,8 @@ class LeggedRobot(BaseTask):
         self.last_dof_vel[:] = self.dof_vel[:]
         self.last_root_vel[:] = self.root_states[:, 7:13]
 
+        # print(torch.mean(torch.mean(self.root_states[:, 2].unsqueeze(1) - self.measured_heights, dim=1),dim=-1))
+
         if self.viewer and self.enable_viewer_sync and self.debug_viz:
             self._draw_debug_vis()
 
@@ -440,7 +442,7 @@ class LeggedRobot(BaseTask):
             self.commands[env_ids, 2] = torch_rand_float(self.command_ranges["ang_vel_yaw"][0], self.command_ranges["ang_vel_yaw"][1], (len(env_ids), 1), device=self.device).squeeze(1)
 
         # set small commands to zero
-        # self.commands[env_ids, :]=torch.cuda.FloatTensor([0.5,0,0,0],device=self.device)
+        self.commands[env_ids, :]=torch.cuda.FloatTensor([0.5,0,0,0],device=self.device)
         self.commands[env_ids, :2] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.2).unsqueeze(1)
         
         
@@ -1019,18 +1021,18 @@ class LeggedRobot(BaseTask):
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
         return torch.exp(-ang_vel_error/self.cfg.rewards.tracking_sigma)
 
-    # def _reward_feet_air_time(self):
-    #     # Reward long steps
-    #     # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
-    #     contact = self.contact_forces[:, self.feet_indices, 2] > 1.
-    #     contact_filt = torch.logical_or(contact, self.last_contacts) 
-    #     self.last_contacts = contact
-    #     first_contact = (self.feet_air_time > 0.) * contact_filt
-    #     self.feet_air_time += self.dt
-    #     rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
-    #     rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
-    #     self.feet_air_time *= ~contact_filt
-    #     return rew_airTime
+    def _reward_feet_air_time(self):
+        # Reward long steps
+        # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
+        contact = self.contact_forces[:, self.feet_indices, 2] > 1.
+        contact_filt = torch.logical_or(contact, self.last_contacts) 
+        self.last_contacts = contact
+        first_contact = (self.feet_air_time > 0.) * contact_filt
+        self.feet_air_time += self.dt
+        rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) # reward only on first contact with the ground
+        rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1 #no reward for zero command
+        self.feet_air_time *= ~contact_filt
+        return rew_airTime
     
     def _reward_stumble(self):
         # Penalize feet hitting vertical surfaces
@@ -1060,6 +1062,8 @@ class LeggedRobot(BaseTask):
         feet_height = (self.foot_positions[:, :, 2]).view(self.num_envs, -1)
         feet_height_des = torch.max(torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1, 1.) * self.obs_scales.height_measurements)
         # feet_height_des.view(self.num_envs)
-        feet_velocities = (self.foot_velocities[:,:,2]).view(self.num_envs,-1)
+        feet_velocities_x = (self.foot_velocities[:,:,:1]).view(self.num_envs,-1)
+        feet_velocities_y = (self.foot_velocities[:,:,1:2]).view(self.num_envs,-1)
         feet_clearance = feet_height_des - feet_height
-        return torch.sum(torch.square(feet_clearance)*feet_velocities,dim=1)
+        # print(feet_clearance[0],feet_velocities[0])
+        return torch.sum(torch.square(feet_clearance)*feet_velocities_x,dim=-1) + torch.sum(torch.square(feet_clearance)*feet_velocities_y,dim=-1)

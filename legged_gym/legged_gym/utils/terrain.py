@@ -60,6 +60,8 @@ class Terrain:
         self.height_field_raw = np.zeros((self.tot_rows , self.tot_cols), dtype=np.int16)
         if cfg.curriculum:
             self.curiculum()
+        # if cfg.curriculum:
+        #     self.rough_terrain()
         elif cfg.selected:
             self.selected_terrain()
         else:    
@@ -105,6 +107,17 @@ class Terrain:
 
             eval(terrain_type)(terrain, **self.cfg.terrain_kwargs.terrain_kwargs)
             self.add_terrain_to_map(terrain, i, j)
+
+    def rough_terrain(self):
+        for k in range(self.cfg.num_sub_terrains):
+            # Env coordinates in the world
+            (i, j) = np.unravel_index(k, (self.cfg.num_rows, self.cfg.num_cols))
+
+            choice = np.random.uniform(0.00, 0.05)
+            difficulty = np.random.choice([1.])
+            terrain = self.make_terrain(choice, difficulty)
+            self.add_terrain_to_map(terrain, i, j)
+            print("#############################################################")
     
     def make_terrain(self, choice, difficulty):
         terrain = terrain_utils.SubTerrain(   "terrain",

@@ -62,7 +62,7 @@ class LeggedRobotCfg(BaseConfig):
         num_rows= 10 # number of terrain rows (levels)
         num_cols = 20 # number of terrain cols (types)
         # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
-        terrain_proportions = [0.1, 0.1, 0.35, 0.25, 0.2]
+        terrain_proportions = [0.1, 0.1, 0.35, 0.35, 0.1]
         # trimesh only:
         slope_treshold = 0.75 # slopes above this threshold will be corrected to vertical surfaces
 
@@ -71,7 +71,7 @@ class LeggedRobotCfg(BaseConfig):
         max_curriculum = 1.
         num_commands = 4 # default: lin_vel_x, lin_vel_y, ang_vel_yaw, heading (in heading mode ang_vel_yaw is recomputed from heading error)
         resampling_time = 10. # time before command are changed[s]
-        heading_command = True # if true: compute ang vel command from heading error
+        heading_command = False # if true: compute ang vel command from heading error
         class ranges:
             lin_vel_x = [-1.0, 1.0] # min max [m/s]
             lin_vel_y = [-1.0, 1.0]   # min max [m/s]
@@ -149,7 +149,7 @@ class LeggedRobotCfg(BaseConfig):
             #dof_vel = -0.
             dof_acc = -2.5e-7
             base_height = -1.0 
-            #feet_air_time =  1.0
+            feet_air_time =  0.1
             # collision = -1.
             # stumble = -0.01 
             action_rate = -0.01
@@ -157,7 +157,7 @@ class LeggedRobotCfg(BaseConfig):
 
             joint_power=-2e-5
             smoothness=-0.01
-            feet_clearance=-0.01
+            # feet_clearance=-0.01
             power_distribution=-10e-6
             # feet_clearance = -0.01
 
@@ -253,7 +253,7 @@ class LeggedRobotCfgPPO(BaseConfig):
         policy_class_name = 'ActorCritic_DWAQ'
         algorithm_class_name = 'PPO'
         num_steps_per_env = 24 # per iteration
-        max_iterations = 1500 # number of policy updates
+        max_iterations = 3000 # number of policy updates
 
         # logging
         save_interval = 50 # check for potential saves every this many iterations
