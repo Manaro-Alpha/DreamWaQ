@@ -42,7 +42,7 @@ To evaluate the trained policy run
     python3 legged_gym/scripts/play.py --task=[robot name]
 ```  
   
-![Go1](DwaQ_stairs.gif)!
+![Go1](DwaQ_stairs.gif)
 
 ## Configuration
 Requires python 3.8 and numpy version<=1.24.
