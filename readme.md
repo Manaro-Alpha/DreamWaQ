@@ -41,7 +41,8 @@ To evaluate the trained policy run
 ```bash
     python3 legged_gym/scripts/play.py --task=[robot name]
 ```  
-  
+GO1:  
+
 ![Go1](DwaQ_stairs.gif)
 
 ## Configuration
